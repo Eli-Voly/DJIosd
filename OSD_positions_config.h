@@ -4,24 +4,24 @@
 //234 -> not visible. Horizontally 2048-2074(spacing 1), vertically 2048-2528(spacing 32). 26 characters X 15 lines
 
 //currently working elements
-const uint16_t osd_rssi_value_pos = 2179;
-const uint16_t osd_avg_cell_voltage_pos = 2072;
-const uint16_t osd_gps_lon_pos = 2113;
-const uint16_t osd_gps_lat_pos = 2081;
+const uint16_t osd_rssi_value_pos = 234;
+const uint16_t osd_avg_cell_voltage_pos = 234;
+const uint16_t osd_gps_lon_pos = 234;
+const uint16_t osd_gps_lat_pos = 234;
 const uint16_t osd_flymode_pos = 234;
-const uint16_t osd_craft_name_pos = 2543;
-const uint16_t osd_current_draw_pos = 2102;
-const uint16_t osd_mah_drawn_pos = 2136;
-uint16_t osd_gps_sats_pos = 2465;
+const uint16_t osd_craft_name_pos = 234;
+const uint16_t osd_current_draw_pos = 234;
+const uint16_t osd_mah_drawn_pos = 234;
+uint16_t osd_gps_sats_pos = 234;
 const uint16_t osd_main_batt_voltage_pos = 234;
-const uint16_t osd_pitch_angle_pos = 234;
-const uint16_t osd_roll_angle_pos = 234;
-const uint16_t osd_crosshairs_pos = 234;
-const uint16_t osd_numerical_vario_pos = 2532;
+const uint16_t osd_pitch_angle_pos = 2185;
+const uint16_t osd_roll_angle_pos = 2182;
+const uint16_t osd_crosshairs_pos = 2286;
+const uint16_t osd_numerical_vario_pos = 234;
 const uint16_t osd_gps_speed_pos = 2394;
 const uint16_t osd_altitude_pos = 2455;
-const uint16_t osd_home_dir_pos = 2095;
-const uint16_t osd_home_dist_pos = 2426;
+const uint16_t osd_home_dir_pos = 2127;
+const uint16_t osd_home_dist_pos = 234;
 
 
 //not implemented or not available

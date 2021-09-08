@@ -8,11 +8,11 @@
 */
 
 #define SERIAL_TYPE                                                 0       //0==SoftSerial(Arduino_Nano), 1==HardSerial(others)
-#define MAH_CALIBRATION_FACTOR                                      1.0f    //used to calibrate mAh reading.
-#define SPEED_IN_KILOMETERS_PER_HOUR                                        //if commented out defaults to m/s
+// #define MAH_CALIBRATION_FACTOR                                      1.0f    //used to calibrate mAh reading.
+//#define SPEED_IN_KILOMETERS_PER_HOUR                                        //if commented out defaults to m/s
 //#define IMPERIAL_UNITS                                                    //Altitude in feet, distance to home in miles.
-#define VEHICLE_TYPE                                                0       //0==ArduPlane, 1==ArduCopter, 2==INAVPlane, 3==INAVCopter. Used for flight modes
-#define STORE_GPS_LOCATION_IN_SUBTITLE_FILE                                 //comment out to disable. Stores GPS location in the goggles .srt file in place of the "uavBat:" field at a slow rate of ~2-3s per GPS coordinate
+// #define VEHICLE_TYPE                                                0       //0==ArduPlane, 1==ArduCopter, 2==INAVPlane, 3==INAVCopter. Used for flight modes
+// #define STORE_GPS_LOCATION_IN_SUBTITLE_FILE                                 //comment out to disable. Stores GPS location in the goggles .srt file in place of the "uavBat:" field at a slow rate of ~2-3s per GPS coordinate
 //#define DISPLAY_THROTTLE_POSITION                                         //will display the current throttle position(0-100%) in place of the osd_roll_pids_pos element.
 //#define DISPLAY_WIND_SPEED_AND_DIRECTION                                  //Ardupilot only
 
@@ -96,14 +96,20 @@ float climb_rate = 0.0;
 void setup()
 {
 
+    // Serial.begin(9600);
     mspSerial.begin(115200);
     msp.begin(mspSerial);
     mavlinkSerial.begin(57600);
+
+    //Used as ground for mavlink input data
+    pinMode(12, OUTPUT);
+    digitalWrite(12, LOW);
 
 }
 
 void loop()
 {
+
     //receive mavlink data
     mavl_receive();
 
@@ -112,54 +118,56 @@ void loop()
     if ((uint32_t)(currentMillis_MSP - previousMillis_MSP) >= next_interval_MSP) {
         previousMillis_MSP = currentMillis_MSP;
 
-        GPS_calculateDistanceAndDirectionToHome();
-        set_flight_mode_flags();
-        mAh_drawn_calc();
-        blink_sats();
+        // GPS_calculateDistanceAndDirectionToHome();
+        // set_flight_mode_flags();
+        // mAh_drawn_calc();
+        // blink_sats();
+
+        // Serial.println(heading);
         send_msp_to_airunit();
-        
+
         general_counter += next_interval_MSP;
     }
 
-    if(custom_mode != previousFlightMode){
-        previousFlightMode = custom_mode;
-        display_flight_mode();
-    }
+    // if(custom_mode != previousFlightMode){
+    //     previousFlightMode = custom_mode;
+    //     display_flight_mode();
+    // }
 
-    if(batteryCellCount == 0 && vbat > 0)set_battery_cells_number();
+    // if(batteryCellCount == 0 && vbat > 0)set_battery_cells_number();
 
-    check_system_status();
+    // check_system_status();
 
-    //display flight mode every 10s
-    if (general_counter % 10000 == 0)display_flight_mode();
+    // //display flight mode every 10s
+    // if (general_counter % 10000 == 0)display_flight_mode();
 
-    //set GPS home when 3D fix
-    if(fix_type > 2 && set_home == 1 && gps_lat != 0 && gps_lon != 0 && numSat > 5){
-      gps_home_lat = gps_lat;
-      gps_home_lon = gps_lon;
-      gps_home_alt = gps_alt;
-      GPS_calc_longitude_scaling(gps_home_lat);
-      set_home = 0;
-    }
-    
+    // //set GPS home when 3D fix
+    // if(fix_type > 2 && set_home == 1 && gps_lat != 0 && gps_lon != 0 && numSat > 5){
+    //   gps_home_lat = gps_lat;
+    //   gps_home_lon = gps_lon;
+    //   gps_home_alt = gps_alt;
+    //   GPS_calc_longitude_scaling(gps_home_lat);
+    //   set_home = 0;
+    // }
+
 #ifdef DISPLAY_WIND_SPEED_AND_DIRECTION
         display_wind_speed_and_direction();
-#endif            
+#endif
 }
 
 void check_system_status()
 {
-    if(system_status == MAV_STATE_CRITICAL && (general_counter % 800 == 0)) 
+    if(system_status == MAV_STATE_CRITICAL && (general_counter % 800 == 0))
     {
       char failsafe[15] = {"FAILSAFE"};
       show_text(&failsafe);
     }
-    if(system_status == MAV_STATE_EMERGENCY && (general_counter % 800 == 0)) 
+    if(system_status == MAV_STATE_EMERGENCY && (general_counter % 800 == 0))
     {
       char em[15] = {"EMERGENCY"};
       show_text(&em);
     }
-    if(system_status == MAV_STATE_CALIBRATING && (general_counter % 800 == 0)) 
+    if(system_status == MAV_STATE_CALIBRATING && (general_counter % 800 == 0))
     {
       char calib[15] = {"CALIBRATING"};
       show_text(&calib);
@@ -211,7 +219,7 @@ void display_wind_speed_and_direction()
       #else
           w = w + dir + " " + wind_speed + " m/s";
       #endif
-      
+
       char wind[15] = {0};
       w.toCharArray(wind, 15);
       show_text(&wind);
@@ -289,17 +297,33 @@ void mavl_receive()
           }
           break;
 
+          case MAVLINK_MSG_ID_ATTITUDE:
+          {
+            mavlink_attitude_t attitude;
+            mavlink_msg_attitude_decode(&msg, &attitude);
+
+            pitch_angle = attitude.pitch * 573;
+            roll_angle = attitude.roll * 573;
+
+          }
+
           case MAVLINK_MSG_ID_VFR_HUD:  // VFR_HUD
           {
             mavlink_vfr_hud_t vfr_hud;
             mavlink_msg_vfr_hud_decode(&msg, &vfr_hud);
+            if (vfr_hud.airspeed >=.5) {
+                airspeed = vfr_hud.airspeed;
+            }
+            if (vfr_hud.heading <= 360 && vfr_hud.heading >= 0) {
+                heading = vfr_hud.heading;
+            }
 
-            airspeed = vfr_hud.airspeed;                    //float
+            //airspeed = vfr_hud.airspeed;                    //float
             groundspeed = vfr_hud.groundspeed;              //float
-            heading = vfr_hud.heading;
+            // heading = vfr_hud.heading;
             thr_position = (uint8_t)vfr_hud.throttle;
             climb_rate = vfr_hud.climb;                     //float m/s
-            
+
           }
           break;
 
@@ -353,12 +377,12 @@ void mavl_receive()
           {
             mavlink_wind_t wind;
             mavlink_msg_wind_decode(&msg, &wind);
-              
+
             wind_direction = wind.direction;
             wind_speed = wind.speed;
           }
           break;
-          
+
       default:
         break;
       }
@@ -434,23 +458,28 @@ void send_msp_to_airunit()
     raw_gps.lon = gps_lon;
     raw_gps.numSat = numSat;
     raw_gps.alt = relative_alt / 10;
-    raw_gps.groundSpeed = (int16_t)(groundspeed * 100);
-    msp.send(MSP_RAW_GPS, &raw_gps, sizeof(raw_gps));
+    raw_gps.groundSpeed = (int16_t)(airspeed * 100);
+    //raw_gps.groundSpeed = 300;
+
+    // msp.send(MSP_RAW_GPS, &raw_gps, sizeof(raw_gps));
 
     //MSP_COMP_GPS
-    comp_gps.distanceToHome = (int16_t)distanceToHome;
-    comp_gps.directionToHome = directionToHome - heading;
+    comp_gps.distanceToHome = 50;
+    comp_gps.directionToHome = heading;
     msp.send(MSP_COMP_GPS, &comp_gps, sizeof(comp_gps));
 
     //MSP_ATTITUDE
     attitude.pitch = pitch_angle;
     attitude.roll = roll_angle;
+    //attitude.yaw = heading;
     msp.send(MSP_ATTITUDE, &attitude, sizeof(attitude));
 
     //MSP_ALTITUDE
     altitude.estimatedActualPosition = relative_alt / 10; //cm
-    altitude.estimatedActualVelocity = (int16_t)(climb_rate * 100); //m/s to cm/s    
+    altitude.estimatedActualVelocity = (int16_t)(climb_rate * 100); //m/s to cm/s
     msp.send(MSP_ALTITUDE, &altitude, sizeof(altitude));
+
+    //
 
 #ifdef DISPLAY_THROTTLE_POSITION
     //MSP_PID_CONFIG
@@ -466,7 +495,7 @@ msp_osd_config_t msp_osd_config = {0};
 
 void send_osd_config()
 {
-  
+
 #ifdef IMPERIAL_UNITS
     msp_osd_config.units = 0;
 #else
